@@ -168,8 +168,27 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        # Check if the output and input tensors are stride-aligned and have identical shapes
+        if (out_strides == in_strides).all() and (out_shape == in_shape).all() and len(out_shape) == len(in_shape):
+            for ord in prange(len(out)):
+                out[ord] = fn(in_storage[ord])
+            return
+       
+        # General case: Handle broadcasting and indexing for misaligned or differently shaped tensors.
+        for out_ord in prange(len(out)):
+            # Convert the flat index in the output tensor to a multi-dimensional index
+            out_index = out_shape.copy()
+            to_index(out_ord, out_shape, out_index)
+
+            # Broadcast the output index to the corresponding input index
+            in_index = in_shape.copy()
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+
+            # Convert the input multi-dimensional index back to a flat index
+            in_ord = index_to_position(in_index, in_strides)
+
+            # Apply the function to the input value and store the result in the output tensor.
+            out[out_ord] = fn(in_storage[in_ord])
 
     return njit(_map, parallel=True)  # type: ignore
 
@@ -208,8 +227,34 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        # Check if output, a, and b tensors are aligned in strides and have identical shapes.
+        if (
+            len(out_shape) == len(a_shape) and len(out_shape) == len(b_shape) and
+            (out_strides == a_strides).all() and (out_strides == b_strides).all() and
+            (out_shape == a_shape).all() and (out_shape == b_shape).all()
+        ):
+            for ord in prange(len(out)):
+                out[ord] = fn(a_storage[ord], b_storage[ord])
+            return
+        
+        # General case: Handle broadcasting and indexing for misaligned or differently shaped tensors
+        for out_ord in prange(len(out)):
+            # Convert the flat index in the output tensor to a multi-dimensional index
+            out_index = out_shape.copy()
+            to_index(out_ord, out_shape, out_index)
+
+            # Broadcast the output index to corresponding indices in input tensors a and b
+            a_index = a_shape.copy()
+            b_index = b_shape.copy()
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+
+            # Convert the multi-dimensional indices for a and b back to flat indices
+            a_ord = index_to_position(a_index, a_strides)
+            b_ord = index_to_position(b_index, b_strides)
+
+            # Apply the function to elements from a and b, and store the result in the output tensor
+            out[out_ord] = fn(a_storage[a_ord], b_storage[b_ord])
 
     return njit(_zip, parallel=True)  # type: ignore
 
@@ -244,8 +289,25 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        # Iterate over all elements of the output tensor in parallel
+        for ord in prange(len(out)):
+            # Create an index for the current element in the output tensor
+            out_index: Index = np.zeros_like(out_shape, dtype=np.int32)
+            to_index(ord, out_shape, out_index)
+
+            # Map the output index to the corresponding position in the input tensor
+            a_ord = index_to_position(out_index, a_strides)
+
+            # Initialize the reduction value with the current value in the output storage
+            reduce_value = out[ord]
+
+            # Perform the reduction along the specified dimension
+            for i in prange(a_shape[reduce_dim]):
+                reduce_value = fn(reduce_value, a_storage[a_ord + i * a_strides[reduce_dim]])
+
+            # Store the final reduction result in the output tensor
+            out[ord] = reduce_value
+        
 
     return njit(_reduce, parallel=True)  # type: ignore
 
@@ -296,9 +358,26 @@ def _tensor_matrix_multiply(
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
 
-    # TODO: Implement for Task 3.2.
-    raise NotImplementedError("Need to implement for Task 3.2")
+    # Outer loops over the batch dimension, rows of `a`, and columns of `b`
+    for i in prange(out_shape[0]):  # Iterate over the batch size
+        for j in prange(out_shape[1]):  # Iterate over the rows of the output
+            for k in prange(out_shape[2]):  # Iterate over the columns of the output
+                # Calculate the initial strides for the current batch and position
+                a_inner_stride = i * a_batch_stride + j * a_strides[1]
+                b_inner_stride = j * b_batch_stride + k * b_strides[2]
 
+                # Initialize the output value for the current position
+                val = 0.0
+
+                # Perform the dot product between the row of `a` and the column of `b`
+                for l in prange(a_shape[2]):  # Iterate over the shared dimension
+                    val += a_storage[a_inner_stride] * b_storage[b_inner_stride]
+                    # Update the inner strides for the next element
+                    a_inner_stride += a_strides[2]
+                    b_inner_stride += b_strides[1]
+
+                # Write the result to the output storage at the correct position
+                out[i * out_strides[0] + j * out_strides[1] + k * out_strides[2]] = val
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
 assert tensor_matrix_multiply is not None
