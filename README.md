@@ -233,73 +233,69 @@ MATRIX MULTIPLY
 
 
 Parallel loop listing for  Function _tensor_matrix_multiply, /Users/ivanjie/workspace/mod3-cj466/minitorch/fast_ops.py (315) 
--------------------------------------------------------------------------------------------|loop #ID
-def _tensor_matrix_multiply(                                                               | 
-    out: Storage,                                                                          | 
-    out_shape: Shape,                                                                      | 
-    out_strides: Strides,                                                                  | 
-    a_storage: Storage,                                                                    | 
-    a_shape: Shape,                                                                        | 
-    a_strides: Strides,                                                                    | 
-    b_storage: Storage,                                                                    | 
-    b_shape: Shape,                                                                        | 
-    b_strides: Strides,                                                                    | 
-) -> None:                                                                                 | 
-    """NUMBA tensor matrix multiply function.                                              | 
-                                                                                           | 
-    Should work for any tensor shapes that broadcast as long as                            | 
-                                                                                           | 
-    ```                                                                                    | 
-    assert a_shape[-1] == b_shape[-2]                                                      | 
-    ```                                                                                    | 
-                                                                                           | 
-    Optimizations:                                                                         | 
-                                                                                           | 
-    * Outer loop in parallel                                                               | 
-    * No index buffers or function calls                                                   | 
-    * Inner loop should have no global writes, 1 multiply.                                 | 
-                                                                                           | 
-                                                                                           | 
-    Args:                                                                                  | 
-    ----                                                                                   | 
-        out (Storage): storage for `out` tensor                                            | 
-        out_shape (Shape): shape for `out` tensor                                          | 
-        out_strides (Strides): strides for `out` tensor                                    | 
-        a_storage (Storage): storage for `a` tensor                                        | 
-        a_shape (Shape): shape for `a` tensor                                              | 
-        a_strides (Strides): strides for `a` tensor                                        | 
-        b_storage (Storage): storage for `b` tensor                                        | 
-        b_shape (Shape): shape for `b` tensor                                              | 
-        b_strides (Strides): strides for `b` tensor                                        | 
-                                                                                           | 
-    Returns:                                                                               | 
-    -------                                                                                | 
-        None : Fills in `out`                                                              | 
-                                                                                           | 
-    """                                                                                    | 
-    a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0                                 | 
-    b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0                                 | 
-                                                                                           | 
-    # Outer loops over the batch dimension, rows of `a`, and columns of `b`                | 
-    for i in prange(out_shape[0]):  # Iterate over the batch size--------------------------| #15
-        for j in prange(out_shape[1]):  # Iterate over the rows of the output--------------| #14
-            for k in prange(out_shape[2]):  # Iterate over the columns of the output-------| #13
-                # Calculate the initial strides for the current batch and position         | 
-                a_inner_stride = i * a_batch_stride + j * a_strides[1]                     | 
-                b_inner_stride = j * b_batch_stride + k * b_strides[2]                     | 
-                                                                                           | 
-                # Initialize the output value for the current position                     | 
-                val = 0.0                                                                  | 
-                                                                                           | 
-                # Perform the dot product between the row of `a` and the column of `b`     | 
-                for l in prange(a_shape[2]):  # Iterate over the shared dimension----------| #12
-                    val += a_storage[a_inner_stride] * b_storage[b_inner_stride]           | 
-                    # Update the inner strides for the next element                        | 
-                    a_inner_stride += a_strides[2]                                         | 
-                    b_inner_stride += b_strides[1]                                         | 
-                                                                                           | 
-                # Write the result to the output storage at the correct position           | 
-                out[i * out_strides[0] + j * out_strides[1] + k * out_strides[2]] = val    | 
+----------------------------------------------------------------------------------------------|loop #ID
+def _tensor_matrix_multiply(                                                                  | 
+    out: Storage,                                                                             | 
+    out_shape: Shape,                                                                         | 
+    out_strides: Strides,                                                                     | 
+    a_storage: Storage,                                                                       | 
+    a_shape: Shape,                                                                           | 
+    a_strides: Strides,                                                                       | 
+    b_storage: Storage,                                                                       | 
+    b_shape: Shape,                                                                           | 
+    b_strides: Strides,                                                                       | 
+) -> None:                                                                                    | 
+    """NUMBA tensor matrix multiply function.                                                 | 
+                                                                                              | 
+    Should work for any tensor shapes that broadcast as long as                               | 
+                                                                                              | 
+    ```                                                                                       | 
+    assert a_shape[-1] == b_shape[-2]                                                         | 
+    ```                                                                                       | 
+                                                                                              | 
+    Optimizations:                                                                            | 
+                                                                                              | 
+    * Outer loop in parallel                                                                  | 
+    * No index buffers or function calls                                                      | 
+    * Inner loop should have no global writes, 1 multiply.                                    | 
+                                                                                              | 
+                                                                                              | 
+    Args:                                                                                     | 
+    ----                                                                                      | 
+        out (Storage): storage for `out` tensor                                               | 
+        out_shape (Shape): shape for `out` tensor                                             | 
+        out_strides (Strides): strides for `out` tensor                                       | 
+        a_storage (Storage): storage for `a` tensor                                           | 
+        a_shape (Shape): shape for `a` tensor                                                 | 
+        a_strides (Strides): strides for `a` tensor                                           | 
+        b_storage (Storage): storage for `b` tensor                                           | 
+        b_shape (Shape): shape for `b` tensor                                                 | 
+        b_strides (Strides): strides for `b` tensor                                           | 
+                                                                                              | 
+    Returns:                                                                                  | 
+    -------                                                                                   | 
+        None : Fills in `out`                                                                 | 
+                                                                                              | 
+    """                                                                                       | 
+    a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0                                    | 
+    b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0                                    | 
+                                                                                              | 
+    N, I, J, K = out_shape[0], out_shape[1], out_shape[2], a_shape[-1]                        | 
+    for n in prange(N):  # Batch dimension----------------------------------------------------| #15
+        for i in prange(I):  # Row of the result matrix---------------------------------------| #14
+            for j in prange(J):  # Column of the result matrix--------------------------------| #13
+                for k in prange(K):  # Inner dimension of the matrix multiplication-----------| #12
+                    # Calculate the flat index for the output tensor                          | 
+                    out_ord = n * out_strides[0] + i * out_strides[1] + j * out_strides[2]    | 
+                                                                                              | 
+                    # Calculate the flat index for the corresponding element in tensor `a`    | 
+                    a_ord = n * a_batch_stride + i * a_strides[1] + k * a_strides[2]          | 
+                                                                                              | 
+                    # Calculate the flat index for the corresponding element in tensor `b`    | 
+                    b_ord = n * b_batch_stride + k * b_strides[1] + j * b_strides[2]          | 
+                                                                                              | 
+                    # Update the output tensor by accumulating the product of `a` and `b`     | 
+                    out[out_ord] += a_storage[a_ord] * b_storage[b_ord]                       | 
 --------------------------------- Fusing loops ---------------------------------
 Attempting fusion of parallel loops (combines loops with similar properties)...
 Following the attempted fusion of parallel for-loops there are 2 parallel for-
