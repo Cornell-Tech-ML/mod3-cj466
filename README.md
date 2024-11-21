@@ -374,3 +374,35 @@ Size: 1024
     gpu: 0.99288
 ```
 ![image](images/comparison.png)
+
+## Task 3.5 Training
+### Small Model
+#### Simple Dataset
+CPU
+```
+```
+GPU
+```
+```
+#### XOR Dataset
+CPU
+```
+```
+GPU
+```
+```
+#### Split Dataset
+CPU
+```
+```
+GPU
+```
+```
+### Bigger Model
+#### Simple Dataset
+CPU
+```
+```
+GPU
+```
+```
