@@ -1,7 +1,8 @@
+"""Timing utilities for measuring tensor operations performance."""
+
 import minitorch
 import time
 import numpy as np
-#import matplotlib.pyplot as plt
 
 FastTensorBackend = minitorch.TensorBackend(minitorch.FastOps)
 GPUBackend = minitorch.TensorBackend(minitorch.CudaOps)
@@ -57,18 +58,3 @@ if __name__ == "__main__":
     sizes = list(times.keys())
     fast_times = [times[size]["fast"] for size in sizes]
     gpu_times = [times[size]["gpu"] for size in sizes]
-
-"""     plt.figure(figsize=(10, 6))
-    plt.plot(sizes, fast_times, marker='o', label='Fast Backend')
-    plt.plot(sizes, gpu_times, marker='s', label='GPU Backend')
-
-    plt.xlabel('Matrix Size', fontsize=12)
-    plt.ylabel('Time (seconds)', fontsize=12)
-    plt.title('Performance Comparison of Backends', fontsize=14)
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.legend(fontsize=12)
-
-    plt.savefig("comparison.png", dpi=300)
-    plt.show() """

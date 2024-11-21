@@ -31,7 +31,7 @@ The files that will be synced are:
 
         minitorch/tensor_data.py minitorch/tensor_functions.py minitorch/tensor_ops.py minitorch/operators.py minitorch/scalar.py minitorch/scalar_functions.py minitorch/module.py minitorch/autodiff.py minitorch/module.py project/run_manual.py project/run_scalar.py project/run_tensor.py minitorch/operators.py minitorch/module.py minitorch/autodiff.py minitorch/tensor.py minitorch/datasets.py minitorch/testing.py minitorch/optim.py
 
-## Task 3.1 Parallel Check Diagnostics Output
+## Task 3.1 & 3.2Parallel Check Diagnostics Output
 ```
 MAP
 
@@ -348,3 +348,29 @@ Allocation hoisting:
 No allocation hoisting found
 None
 ```
+## Task 3.3 Colab Tests Passed
+![image](images/3_3_tests.png)
+
+## Task 3.4 Colab Tests Passed
+![image](images/3_4_tests.png)
+
+## Task 3.4 Comparison
+```
+Timing summary
+Size: 64
+    fast: 0.00497
+    gpu: 0.00735
+Size: 128
+    fast: 0.01643
+    gpu: 0.01549
+Size: 256
+    fast: 0.10202
+    gpu: 0.05411
+Size: 512
+    fast: 1.24839
+    gpu: 0.29812
+Size: 1024
+    fast: 7.84488
+    gpu: 0.99288
+```
+![image](images/comparison.png)
