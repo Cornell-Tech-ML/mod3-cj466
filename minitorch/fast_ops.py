@@ -7,7 +7,6 @@ from numba import prange
 from numba import njit as _njit
 
 from .tensor_data import (
-    MAX_DIMS,
     broadcast_index,
     index_to_position,
     shape_broadcast,
@@ -30,6 +29,7 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """Wrapper around numba's njit decorator that enables function inlining."""
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -169,11 +169,15 @@ def tensor_map(
         in_strides: Strides,
     ) -> None:
         # Check if the output and input tensors are stride-aligned and have identical shapes
-        if (out_strides == in_strides).all() and (out_shape == in_shape).all() and len(out_shape) == len(in_shape):
+        if (
+            (out_strides == in_strides).all()
+            and (out_shape == in_shape).all()
+            and len(out_shape) == len(in_shape)
+        ):
             for ord in prange(len(out)):
                 out[ord] = fn(in_storage[ord])
             return
-       
+
         # General case: Handle broadcasting and indexing for misaligned or differently shaped tensors.
         for out_ord in prange(len(out)):
             # Convert the flat index in the output tensor to a multi-dimensional index
@@ -229,14 +233,17 @@ def tensor_zip(
     ) -> None:
         # Check if output, a, and b tensors are aligned in strides and have identical shapes.
         if (
-            len(out_shape) == len(a_shape) and len(out_shape) == len(b_shape) and
-            (out_strides == a_strides).all() and (out_strides == b_strides).all() and
-            (out_shape == a_shape).all() and (out_shape == b_shape).all()
+            len(out_shape) == len(a_shape)
+            and len(out_shape) == len(b_shape)
+            and (out_strides == a_strides).all()
+            and (out_strides == b_strides).all()
+            and (out_shape == a_shape).all()
+            and (out_shape == b_shape).all()
         ):
             for ord in prange(len(out)):
                 out[ord] = fn(a_storage[ord], b_storage[ord])
             return
-        
+
         # General case: Handle broadcasting and indexing for misaligned or differently shaped tensors
         for out_ord in prange(len(out)):
             # Convert the flat index in the output tensor to a multi-dimensional index
@@ -303,11 +310,12 @@ def tensor_reduce(
 
             # Perform the reduction along the specified dimension
             for i in prange(a_shape[reduce_dim]):
-                reduce_value = fn(reduce_value, a_storage[a_ord + i * a_strides[reduce_dim]])
+                reduce_value = fn(
+                    float(a_storage[a_ord + i * a_strides[reduce_dim]]), reduce_value
+                )
 
             # Store the final reduction result in the output tensor
             out[ord] = reduce_value
-        
 
     return njit(_reduce, parallel=True)  # type: ignore
 
@@ -364,16 +372,19 @@ def _tensor_matrix_multiply(
             for j in prange(J):  # Column of the result matrix
                 for k in prange(K):  # Inner dimension of the matrix multiplication
                     # Calculate the flat index for the output tensor
-                    out_ord = n * out_strides[0] + i * out_strides[1] + j * out_strides[2]
-                    
+                    out_ord = (
+                        n * out_strides[0] + i * out_strides[1] + j * out_strides[2]
+                    )
+
                     # Calculate the flat index for the corresponding element in tensor `a`
                     a_ord = n * a_batch_stride + i * a_strides[1] + k * a_strides[2]
-                    
+
                     # Calculate the flat index for the corresponding element in tensor `b`
                     b_ord = n * b_batch_stride + k * b_strides[1] + j * b_strides[2]
-                    
+
                     # Update the output tensor by accumulating the product of `a` and `b`
                     out[out_ord] += a_storage[a_ord] * b_storage[b_ord]
+
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
 assert tensor_matrix_multiply is not None

@@ -136,6 +136,7 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
                 raise IndexingError(f"Broadcast error: {a} and {b}")
     return tuple(reversed(c_rev))
 
+
 def strides_from_shape(shape: UserShape) -> UserStrides:
     """Return a contiguous stride for a shape"""
     layout = [1]
