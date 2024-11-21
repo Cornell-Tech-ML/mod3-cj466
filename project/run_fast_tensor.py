@@ -4,6 +4,8 @@ import numba
 
 import minitorch
 
+import time
+
 datasets = minitorch.datasets
 FastTensorBackend = minitorch.TensorBackend(minitorch.FastOps)
 if numba.cuda.is_available():
@@ -29,8 +31,10 @@ class Network(minitorch.Module):
         self.layer3 = Linear(hidden, 1, backend)
 
     def forward(self, x):
-        # TODO: Implement for Task 3.5.
-        raise NotImplementedError("Need to implement for Task 3.5")
+        # Implement for Task 3.5.
+        h1 = self.layer1.forward(x).relu()
+        h2 = self.layer2.forward(h1).relu()
+        return self.layer3.forward(h2).sigmoid()
 
 
 class Linear(minitorch.Module):
@@ -43,8 +47,9 @@ class Linear(minitorch.Module):
         self.out_size = out_size
 
     def forward(self, x):
-        # TODO: Implement for Task 3.5.
-        raise NotImplementedError("Need to implement for Task 3.5")
+        # Implement for Task 3.5.
+        return x @ self.weights.value + self.bias.value
+
 
 
 class FastTrain:
@@ -64,6 +69,8 @@ class FastTrain:
         optim = minitorch.SGD(self.model.parameters(), learning_rate)
         BATCH = 10
         losses = []
+
+        start_time = time.time()
 
         for epoch in range(max_epochs):
             total_loss = 0.0
@@ -97,6 +104,9 @@ class FastTrain:
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
                 log_fn(epoch, total_loss, correct, losses)
 
+        end_time = time.time()
+        print(f"Average time per epoch: {(end_time - start_time) / max_epochs}")
+
 
 if __name__ == "__main__":
     import argparse
@@ -116,7 +126,7 @@ if __name__ == "__main__":
     if args.DATASET == "xor":
         data = minitorch.datasets["Xor"](PTS)
     elif args.DATASET == "simple":
-        data = minitorch.datasets["Simple"].simple(PTS)
+        data = minitorch.datasets["Simple"](PTS)
     elif args.DATASET == "split":
         data = minitorch.datasets["Split"](PTS)
 
